@@ -800,23 +800,17 @@ export function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps)
   };
 
   const renderContentStep = () => (
-    <div className="h-screen flex gap-6">
+    <div className="min-h-screen flex gap-6">
       <div className="flex-1 flex flex-col">
         {/* Sticky Header */}
         <div className="sticky top-0 z-50 bg-background border-b border-border">
           <div className="p-6 pb-4">
             <DialogHeader className="mb-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <Button variant="ghost" size="sm" onClick={handleBack}>
-                    <ChevronLeft className="w-4 h-4" />
-                  </Button>
-                  <DialogTitle className="text-xl font-semibold">WhatsApp campaign</DialogTitle>
-                </div>
-                <div className="flex space-x-2">
-                  <Button variant="outline">FINISH LATER</Button>
-                  <Button onClick={handleNext}>NEXT STEP</Button>
-                </div>
+              <div className="flex items-center space-x-3">
+                <Button variant="ghost" size="sm" onClick={handleBack}>
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <DialogTitle className="text-xl font-semibold">WhatsApp campaign</DialogTitle>
               </div>
             </DialogHeader>
 
@@ -854,7 +848,7 @@ export function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps)
         </div>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto px-6 pb-6" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <div className="flex-1 overflow-y-auto px-6 pb-24" style={{ WebkitOverflowScrolling: 'touch' }}>
           <div className="space-y-6 pt-6">
             <div>
               <h3 className="text-lg font-semibold mb-2">Select template</h3>
@@ -873,6 +867,11 @@ export function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps)
               </div>
             </div>
           </div>
+        </div>
+        {/* Sticky Footer */}
+        <div className="sticky bottom-0 z-50 bg-background border-t border-border p-6 flex justify-end space-x-2">
+          <Button variant="outline">FINISH LATER</Button>
+          <Button onClick={handleNext}>NEXT STEP</Button>
         </div>
       </div>
       
@@ -995,28 +994,17 @@ export function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps)
   ];
 
   const renderScheduleStep = () => (
-    <div className="h-screen flex gap-6">
+    <div className="min-h-screen flex gap-6">
       <div className="flex-1 flex flex-col">
         {/* Sticky Header */}
         <div className="sticky top-0 z-50 bg-background border-b border-border">
           <div className="p-6 pb-4">
             <DialogHeader className="mb-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <Button variant="ghost" size="sm" onClick={handleBack}>
-                    <ChevronLeft className="w-4 h-4" />
-                  </Button>
-                  <DialogTitle className="text-xl font-semibold">WhatsApp campaign</DialogTitle>
-                </div>
-                <div className="flex space-x-2">
-                  <Button variant="outline">FINISH LATER</Button>
-                  <Button 
-                    onClick={handleNext}
-                    disabled={!validateScheduleTimes()}
-                  >
-                    SAVE AND PREVIEW
-                  </Button>
-                </div>
+              <div className="flex items-center space-x-3">
+                <Button variant="ghost" size="sm" onClick={handleBack}>
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <DialogTitle className="text-xl font-semibold">WhatsApp campaign</DialogTitle>
               </div>
             </DialogHeader>
 
@@ -1066,7 +1054,7 @@ export function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps)
         </div>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto px-6 pb-6" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <div className="flex-1 overflow-y-auto px-6 pb-24" style={{ WebkitOverflowScrolling: 'touch' }}>
           <div className="space-y-6 pt-6">
             {/* Schedule Campaign */}
             <div>
@@ -1379,6 +1367,13 @@ export function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps)
               )}
             </div>
           </div>
+        </div>
+        {/* Sticky Footer */}
+        <div className="sticky bottom-0 z-50 bg-background border-t border-border p-6 flex justify-end space-x-2">
+          <Button variant="outline">FINISH LATER</Button>
+          <Button onClick={handleNext} disabled={!validateScheduleTimes()}>
+            SAVE AND PREVIEW
+          </Button>
         </div>
       </div>
       
@@ -1870,23 +1865,17 @@ export function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps)
   );
 
   const renderSetupStep = () => (
-    <div className="h-screen flex gap-6">
+    <div className="min-h-screen flex gap-6">
       <div className="flex-1 flex flex-col">
         {/* Sticky Header */}
         <div className="sticky top-0 z-50 bg-background border-b border-border">
           <div className="p-6 pb-4">
             <DialogHeader className="mb-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <Button variant="ghost" size="sm" onClick={handleBack}>
-                    <ChevronLeft className="w-4 h-4" />
-                  </Button>
-                  <DialogTitle className="text-xl font-semibold">WhatsApp campaign</DialogTitle>
-                </div>
-                <div className="flex space-x-2">
-                  <Button variant="outline">FINISH LATER</Button>
-                  <Button onClick={handleNext}>NEXT STEP</Button>
-                </div>
+              <div className="flex items-center space-x-3">
+                <Button variant="ghost" size="sm" onClick={handleBack}>
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <DialogTitle className="text-xl font-semibold">WhatsApp campaign</DialogTitle>
               </div>
             </DialogHeader>
 
@@ -1924,7 +1913,7 @@ export function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps)
         </div>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto px-6 pb-6" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <div className="flex-1 overflow-y-auto px-6 pb-24" style={{ WebkitOverflowScrolling: 'touch' }}>
           <div className="space-y-6 pt-6">
             {/* Campaign Details */}
             <div>
@@ -2118,6 +2107,11 @@ export function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps)
             </div>
           </div>
         </div>
+        {/* Sticky Footer */}
+        <div className="sticky bottom-0 z-50 bg-background border-t border-border p-6 flex justify-end space-x-2">
+          <Button variant="outline">FINISH LATER</Button>
+          <Button onClick={handleNext}>NEXT STEP</Button>
+        </div>
       </div>
       
       <div className="w-80 overflow-y-auto max-h-screen" style={{ WebkitOverflowScrolling: 'touch' }}>
@@ -2127,23 +2121,17 @@ export function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps)
   );
 
   const renderAudienceStep = () => (
-    <div className="h-screen flex gap-6">
+    <div className="min-h-screen flex gap-6">
       <div className="flex-1 flex flex-col">
         {/* Sticky Header */}
         <div className="sticky top-0 z-50 bg-background border-b border-border">
           <div className="p-6 pb-4">
             <DialogHeader className="mb-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <Button variant="ghost" size="sm" onClick={handleBack}>
-                    <ChevronLeft className="w-4 h-4" />
-                  </Button>
-                  <DialogTitle className="text-xl font-semibold">WhatsApp campaign</DialogTitle>
-                </div>
-                <div className="flex space-x-2">
-                  <Button variant="outline">FINISH LATER</Button>
-                  <Button onClick={handleNext}>NEXT STEP</Button>
-                </div>
+              <div className="flex items-center space-x-3">
+                <Button variant="ghost" size="sm" onClick={handleBack}>
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <DialogTitle className="text-xl font-semibold">WhatsApp campaign</DialogTitle>
               </div>
             </DialogHeader>
 
@@ -2181,7 +2169,7 @@ export function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps)
         </div>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto px-6 pb-6" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <div className="flex-1 overflow-y-auto px-6 pb-24" style={{ WebkitOverflowScrolling: 'touch' }}>
           <div className="space-y-6 pt-6">
             {/* Target Audience */}
             <div>
@@ -2352,6 +2340,11 @@ export function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps)
               )}
             </div>
           </div>
+        </div>
+        {/* Sticky Footer */}
+        <div className="sticky bottom-0 z-50 bg-background border-t border-border p-6 flex justify-end space-x-2">
+          <Button variant="outline">FINISH LATER</Button>
+          <Button onClick={handleNext}>NEXT STEP</Button>
         </div>
       </div>
       
