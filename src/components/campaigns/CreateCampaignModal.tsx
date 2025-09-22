@@ -2,6 +2,7 @@ import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DateTime } from 'luxon';
 import { z } from 'zod';
+import { RetryTtlConfig, DEFAULT_RETRY_POLICIES } from '@/types/campaign';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -159,7 +160,8 @@ interface CampaignFormData {
   samplingMethod: SamplingMethod;
   // Retry Logic fields
   retryEnabled: boolean;
-  retryDuration: number;
+  retryTtlDate: Date | null;
+  retryTtlTime: string;
   stopOnConversion: boolean;
   stopOnManualPause: boolean;
   stopOnTemplateChange: boolean;
@@ -772,7 +774,7 @@ const SummaryPanel = ({ formData, currentStep }: { formData: CampaignFormData; c
             {formData.retryEnabled && (
               <div>
                 <span className="font-medium text-foreground">Retry logic:</span>
-                <div>Daily × {formData.retryDuration} days</div>
+                <div>Until {formData.retryTtlDate ? format(formData.retryTtlDate, 'MMM dd, yyyy') : 'N/A'} at {formData.retryTtlTime}</div>
               </div>
             )}
             </div>
@@ -809,6 +811,16 @@ const normalizeCampaignData = (data: any): CampaignFormData => {
   // Clear revenue parameter if conversion goal is disabled
   if (!normalized.conversionGoalEnabled) {
     normalized.revenueParameter = null;
+  }
+
+  // Handle legacy retry duration migration to TTL
+  if (data.retryDuration && !data.retryTtlDate) {
+    // Convert legacy retryDuration (days) to TTL date
+    const scheduledDate = data.scheduledDate || new Date();
+    const ttlDate = new Date(scheduledDate);
+    ttlDate.setDate(ttlDate.getDate() + data.retryDuration);
+    normalized.retryTtlDate = ttlDate;
+    normalized.retryTtlTime = '11:59 PM';
   }
 
   return normalized;
@@ -894,7 +906,8 @@ export function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps)
       samplingMethod: 'RANDOM_SAMPLE',
       // Retry Logic fields
       retryEnabled: false,
-      retryDuration: 7,
+      retryTtlDate: null,
+      retryTtlTime: '11:59 PM',
       stopOnConversion: true,
       stopOnManualPause: true,
       stopOnTemplateChange: true,
@@ -923,6 +936,20 @@ export function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps)
       // Handle conversion goal changes
       if ('conversionGoalEnabled' in updates && !updates.conversionGoalEnabled) {
         newData.revenueParameter = null;
+      }
+      
+      // Auto-set default TTL when retry is enabled and no TTL date is set
+      if (updates.retryEnabled === true && !newData.retryTtlDate) {
+        const scheduledDate = newData.scheduledDate || new Date();
+        const defaultTtl = new Date(scheduledDate);
+        defaultTtl.setDate(defaultTtl.getDate() + 7);
+        newData.retryTtlDate = defaultTtl;
+        newData.retryTtlTime = '11:59 PM';
+      }
+      
+      // Clear TTL when retry is disabled
+      if (updates.retryEnabled === false) {
+        newData.retryTtlDate = null;
       }
       
       // Validate segment limits
@@ -987,8 +1014,29 @@ export function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps)
       });
     }
     
-    return { isValid: result.success, errors };
-  }, [formData.scheduleConfig]);
+    // Validate retry TTL constraints
+    if (formData.retryEnabled && formData.retryTtlDate) {
+      const scheduledDate = formData.scheduledDate || new Date();
+      const minDate = new Date(scheduledDate);
+      const maxDate = new Date(scheduledDate);
+      maxDate.setDate(maxDate.getDate() + 7);
+      
+      if (formData.retryTtlDate < minDate) {
+        errors.push('Retry TTL date cannot be before the scheduled date');
+      }
+      
+      if (formData.retryTtlDate > maxDate) {
+        errors.push('Retry TTL date cannot be more than 7 days after the scheduled date');
+      }
+    }
+    
+    // Validate retry TTL is set when retry is enabled
+    if (formData.retryEnabled && !formData.retryTtlDate) {
+      errors.push('Retry TTL date is required when retry logic is enabled');
+    }
+    
+    return { isValid: result.success && errors.length === 0, errors };
+  }, [formData.scheduleConfig, formData.retryEnabled, formData.retryTtlDate, formData.scheduledDate]);
 
   // Update wizard progress when form data changes
   const updateWizardProgress = useCallback(() => {
@@ -1354,7 +1402,8 @@ export function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps)
       samplingMethod: 'RANDOM_SAMPLE',
       // Retry Logic fields
       retryEnabled: false,
-      retryDuration: 7,
+      retryTtlDate: null,
+      retryTtlTime: '11:59 PM',
       stopOnConversion: true,
       stopOnManualPause: true,
       stopOnTemplateChange: true
@@ -1887,27 +1936,104 @@ export function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps)
               {formData.retryEnabled && isRetryAllowed() && (
                 <div className="space-y-4">
                   <div className="p-4 bg-muted/30 rounded-lg">
-                    <p className="text-sm text-muted-foreground mb-2">
-                      <strong>Fixed cadence:</strong> Every 24 hours
+                    <p className="text-sm text-muted-foreground mb-4">
+                      <strong>Retry Until (TTL):</strong> Set the deadline for retry attempts
                     </p>
                     
-                    {/* Duration Slider */}
-                    <div>
-                      <Label className="text-sm font-medium mb-2 block">Duration (days)</Label>
-                      <div className="flex items-center space-x-4">
-                        <span className="text-sm">1</span>
-                        <Slider
-                          value={[formData.retryDuration]}
-                          onValueChange={(value) => updateFormData({ retryDuration: value[0] })}
-                          max={7}
-                          min={1}
-                          step={1}
-                          className="flex-1"
-                        />
-                        <span className="text-sm">7</span>
+                    {/* TTL Date/Time Picker */}
+                    <div className="space-y-4">
+                      <div>
+                        <Label className="text-sm font-medium mb-2 block">Retry Until Date</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={`w-full justify-start text-left font-normal ${
+                                !formData.retryTtlDate && "text-muted-foreground"
+                              }`}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {formData.retryTtlDate ? (
+                                format(formData.retryTtlDate, "PPP")
+                              ) : (
+                                <span>Pick a date</span>
+                              )}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0">
+                            <Calendar
+                              mode="single"
+                              selected={formData.retryTtlDate || undefined}
+                              onSelect={(date) => {
+                                // Auto-set default TTL to scheduled date + 7 days if no date selected
+                                if (!formData.retryTtlDate && date) {
+                                  const scheduledDate = formData.scheduledDate || new Date();
+                                  const defaultTtl = new Date(scheduledDate);
+                                  defaultTtl.setDate(defaultTtl.getDate() + 7);
+                                  updateFormData({ retryTtlDate: date || defaultTtl });
+                                } else {
+                                  updateFormData({ retryTtlDate: date });
+                                }
+                              }}
+                              disabled={(date) => {
+                                const scheduledDate = formData.scheduledDate || new Date();
+                                const minDate = new Date(scheduledDate);
+                                const maxDate = new Date(scheduledDate);
+                                maxDate.setDate(maxDate.getDate() + 7);
+                                return date < minDate || date > maxDate;
+                              }}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Must be between scheduled date and scheduled date + 7 days
+                        </p>
+                        {/* TTL Validation Error Display */}
+                        {(() => {
+                          const validation = validateScheduleStep();
+                          const ttlErrors = validation.errors.filter(error => 
+                            error.includes('TTL') || error.includes('retry')
+                          );
+                          return ttlErrors.length > 0 && (
+                            <div className="mt-2">
+                              {ttlErrors.map((error, index) => (
+                                <p key={index} className="text-xs text-red-600 bg-red-50 p-2 rounded">
+                                  {error}
+                                </p>
+                              ))}
+                            </div>
+                          );
+                        })()}
                       </div>
-                      <div className="text-center text-sm text-muted-foreground mt-1">
-                        {formData.retryDuration} day{formData.retryDuration !== 1 ? 's' : ''}
+                      
+                      <div>
+                        <Label className="text-sm font-medium mb-2 block">Retry Until Time</Label>
+                        <Select
+                          value={formData.retryTtlTime}
+                          onValueChange={(value) => updateFormData({ retryTtlTime: value })}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select time" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Array.from({ length: 24 }, (_, i) => {
+                              const hour = i;
+                              const time12 = hour === 0 ? '12:00 AM' : 
+                                           hour < 12 ? `${hour}:00 AM` : 
+                                           hour === 12 ? '12:00 PM' : 
+                                           `${hour - 12}:00 PM`;
+                              const time12_30 = hour === 0 ? '12:30 AM' : 
+                                               hour < 12 ? `${hour}:30 AM` : 
+                                               hour === 12 ? '12:30 PM' : 
+                                               `${hour - 12}:30 PM`;
+                              return [
+                                <SelectItem key={`${hour}:00`} value={time12}>{time12}</SelectItem>,
+                                <SelectItem key={`${hour}:30`} value={time12_30}>{time12_30}</SelectItem>
+                              ];
+                            }).flat()}
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
                   </div>
@@ -2078,7 +2204,7 @@ export function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps)
             <Alert className="mt-4 border-info bg-info/10">
               <Info className="h-4 w-4 text-info" />
               <AlertDescription className="text-foreground">
-                <strong>Retry plan scheduled</strong> (24h cadence, up to {formData.retryDuration} days). 
+                <strong>Retry plan scheduled</strong> (until {formData.retryTtlDate ? format(formData.retryTtlDate, 'MMM dd, yyyy') : 'N/A'} at {formData.retryTtlTime}). 
                 Execution via Netcore; metrics sync back to Adobe. No customer data stored on Netcore.
               </AlertDescription>
             </Alert>

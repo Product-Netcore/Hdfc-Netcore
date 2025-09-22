@@ -15,7 +15,10 @@ CREATE TABLE IF NOT EXISTS public.campaigns (
     bounce TEXT DEFAULT 'NA',
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
-    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    -- Retry TTL fields
+    retry_ttl TIMESTAMPTZ, -- When retry attempts should stop
+    scheduled_at TIMESTAMPTZ -- When the campaign was originally scheduled
 );
 
 -- Create indexes for better performance
@@ -23,6 +26,9 @@ CREATE INDEX IF NOT EXISTS idx_campaigns_user_id ON public.campaigns(user_id);
 CREATE INDEX IF NOT EXISTS idx_campaigns_status ON public.campaigns(status);
 CREATE INDEX IF NOT EXISTS idx_campaigns_channel ON public.campaigns(channel);
 CREATE INDEX IF NOT EXISTS idx_campaigns_created_at ON public.campaigns(created_at);
+-- Indexes for retry TTL functionality
+CREATE INDEX IF NOT EXISTS idx_campaigns_retry_ttl ON public.campaigns(retry_ttl) WHERE retry_ttl IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_campaigns_scheduled_at ON public.campaigns(scheduled_at) WHERE scheduled_at IS NOT NULL;
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE public.campaigns ENABLE ROW LEVEL SECURITY;

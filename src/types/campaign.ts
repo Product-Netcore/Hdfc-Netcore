@@ -16,6 +16,9 @@ export interface Campaign {
   channel: CampaignChannel;
   createdAt?: string;
   updatedAt?: string;
+  // Retry TTL configuration
+  retryTtl?: string; // ISO 8601 datetime string
+  scheduledAt?: string; // ISO 8601 datetime string for scheduled campaigns
 }
 
 export interface StatusTab {
@@ -63,3 +66,42 @@ export interface SuccessBannerState {
   campaignId: string | null;
   message?: string;
 }
+
+// Retry TTL and error-specific retry policies
+export type RetryErrorCode = '131049' | '130472' | '132015';
+
+export interface RetryPolicy {
+  errorCode: RetryErrorCode;
+  description: string;
+  retryIntervals: number[]; // Hours between retries
+  requiresTemplateActive?: boolean; // For 132015
+}
+
+export interface RetryTtlConfig {
+  enabled: boolean;
+  ttlDateTime?: string; // ISO 8601 datetime string
+  scheduledDateTime?: string; // ISO 8601 datetime string (base for TTL calculation)
+  stopOnConversion: boolean;
+  stopOnManualPause: boolean;
+  stopOnTemplateChange: boolean;
+}
+
+// Default retry policies for different error codes
+export const DEFAULT_RETRY_POLICIES: Record<RetryErrorCode, RetryPolicy> = {
+  '131049': {
+    errorCode: '131049',
+    description: 'Frequency cap / healthy ecosystem',
+    retryIntervals: [12, 24, 48], // 12h, 24h, 48h
+  },
+  '130472': {
+    errorCode: '130472',
+    description: 'Experiment group',
+    retryIntervals: [24, 24, 24], // Fixed 24h gaps
+  },
+  '132015': {
+    errorCode: '132015',
+    description: 'Template paused',
+    retryIntervals: [24], // Retry after template becomes active
+    requiresTemplateActive: true,
+  },
+};

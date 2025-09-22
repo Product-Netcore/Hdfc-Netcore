@@ -1,5 +1,6 @@
 import { supabase, Database } from '@/lib/supabase';
-import { Campaign, CampaignListOptions } from '@/types/campaign';
+import { Campaign, CampaignListOptions, RetryTtlConfig } from '@/types/campaign';
+import { CampaignService } from './campaignService';
 
 type CampaignRow = Database['public']['Tables']['campaigns']['Row'];
 type CampaignInsert = Database['public']['Tables']['campaigns']['Insert'];
@@ -22,7 +23,10 @@ export class SupabaseCampaignService {
       bounce: row.bounce,
       channel: row.channel,
       createdAt: row.created_at,
-      updatedAt: row.updated_at
+      updatedAt: row.updated_at,
+      // Map TTL fields if they exist in the database
+      retryTtl: (row as any).retry_ttl,
+      scheduledAt: (row as any).scheduled_at
     };
   }
 
@@ -227,5 +231,129 @@ export class SupabaseCampaignService {
         message: `Database connection failed: ${error}` 
       };
     }
+  }
+
+  /**
+   * Update campaign retry TTL configuration
+   */
+  static async updateRetryTtl(
+    campaignId: string, 
+    retryTtl: string, 
+    scheduledAt?: string
+  ): Promise<void> {
+    const updateData: any = {
+      retry_ttl: retryTtl,
+      updated_at: new Date().toISOString()
+    };
+
+    if (scheduledAt) {
+      updateData.scheduled_at = scheduledAt;
+    }
+
+    const { error } = await supabase
+      .from('campaigns')
+      .update(updateData)
+      .eq('id', campaignId);
+
+    if (error) throw error;
+
+    // Also update the in-memory retry service
+    const retryConfig: RetryTtlConfig = {
+      enabled: true,
+      ttlDateTime: retryTtl,
+      scheduledDateTime: scheduledAt,
+      stopOnConversion: true,
+      stopOnManualPause: true,
+      stopOnTemplateChange: true
+    };
+
+    CampaignService.setRetryConfig(campaignId, retryConfig);
+  }
+
+  /**
+   * Get campaigns that need retry processing
+   */
+  static async getCampaignsForRetry(): Promise<Campaign[]> {
+    const now = new Date().toISOString();
+    
+    const { data, error } = await supabase
+      .from('campaigns')
+      .select('*')
+      .not('retry_ttl', 'is', null)
+      .gt('retry_ttl', now) // TTL not expired
+      .in('status', ['FAILED', 'SUSPENDED']); // Only retry failed/suspended campaigns
+
+    if (error) throw error;
+
+    return data?.map(this.mapRowToCampaign) || [];
+  }
+
+  /**
+   * Get campaigns with expired retry TTL
+   */
+  static async getExpiredRetryCampaigns(): Promise<Campaign[]> {
+    const now = new Date().toISOString();
+    
+    const { data, error } = await supabase
+      .from('campaigns')
+      .select('*')
+      .not('retry_ttl', 'is', null)
+      .lt('retry_ttl', now); // TTL expired
+
+    if (error) throw error;
+
+    return data?.map(this.mapRowToCampaign) || [];
+  }
+
+  /**
+   * Clear retry TTL for campaigns (mark as no longer retrying)
+   */
+  static async clearRetryTtl(campaignIds: string[]): Promise<void> {
+    const { error } = await supabase
+      .from('campaigns')
+      .update({ 
+        retry_ttl: null,
+        updated_at: new Date().toISOString()
+      })
+      .in('id', campaignIds);
+
+    if (error) throw error;
+  }
+
+  /**
+   * Get retry statistics from database
+   */
+  static async getRetryStatistics(): Promise<{
+    totalWithRetry: number;
+    activeRetries: number;
+    expiredRetries: number;
+  }> {
+    const now = new Date().toISOString();
+
+    // Get total campaigns with retry TTL
+    const { count: totalWithRetry } = await supabase
+      .from('campaigns')
+      .select('*', { count: 'exact', head: true })
+      .not('retry_ttl', 'is', null);
+
+    // Get active retries (TTL not expired)
+    const { count: activeRetries } = await supabase
+      .from('campaigns')
+      .select('*', { count: 'exact', head: true })
+      .not('retry_ttl', 'is', null)
+      .gt('retry_ttl', now);
+
+    // Get expired retries
+    const { count: expiredRetries } = await supabase
+      .from('campaigns')
+      .select('*', { count: 'exact', head: true })
+      .not('retry_ttl', 'is', null)
+      .lt('retry_ttl', now);
+
+    return {
+      totalWithRetry: totalWithRetry || 0,
+      activeRetries: activeRetries || 0,
+      expiredRetries: expiredRetries || 0
+    };
   }
 }

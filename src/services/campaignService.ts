@@ -1,4 +1,5 @@
-import { Campaign, CampaignListOptions } from '@/types/campaign';
+import { Campaign, CampaignListOptions, RetryTtlConfig } from '@/types/campaign';
+import { RetryService, CampaignRetryState } from './retryService';
 
 // Mock campaign data - in a real app, this would come from an API
 const baseCampaigns: Campaign[] = [
@@ -63,6 +64,9 @@ const baseCampaigns: Campaign[] = [
     channel: 'WhatsApp'
   }
 ];
+
+// In-memory storage for retry states (in production, this would be in a database)
+const campaignRetryStates = new Map<string, CampaignRetryState>();
 
 export class CampaignService {
   /**
@@ -166,5 +170,104 @@ export class CampaignService {
     // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 1000));
     return this.getCampaigns(options);
+  }
+
+  /**
+   * Create or update retry configuration for a campaign
+   */
+  static setRetryConfig(campaignId: string, retryConfig: RetryTtlConfig): void {
+    const existingState = campaignRetryStates.get(campaignId);
+    
+    if (existingState) {
+      // Update existing retry state
+      campaignRetryStates.set(campaignId, {
+        ...existingState,
+        retryConfig,
+        isExpired: retryConfig.ttlDateTime ? RetryService.isRetryTtlExpired(retryConfig.ttlDateTime) : false
+      });
+    } else {
+      // Create new retry state
+      const newState = RetryService.createRetryState(campaignId, retryConfig);
+      campaignRetryStates.set(campaignId, newState);
+    }
+  }
+
+  /**
+   * Get retry state for a campaign
+   */
+  static getRetryState(campaignId: string): CampaignRetryState | null {
+    return campaignRetryStates.get(campaignId) || null;
+  }
+
+  /**
+   * Check if campaign retries are still active (not expired)
+   */
+  static isRetryActive(campaignId: string): boolean {
+    const retryState = this.getRetryState(campaignId);
+    if (!retryState || !retryState.retryConfig.enabled) {
+      return false;
+    }
+
+    if (!retryState.retryConfig.ttlDateTime) {
+      return false;
+    }
+
+    return !RetryService.isRetryTtlExpired(retryState.retryConfig.ttlDateTime);
+  }
+
+  /**
+   * Get campaigns that need retry processing
+   */
+  static getCampaignsForRetry(): { campaignId: string; retryState: CampaignRetryState }[] {
+    const now = new Date();
+    const campaignsForRetry: { campaignId: string; retryState: CampaignRetryState }[] = [];
+
+    campaignRetryStates.forEach((retryState, campaignId) => {
+      // Skip if retry is disabled or expired
+      if (!retryState.retryConfig.enabled || retryState.isExpired) {
+        return;
+      }
+
+      // Skip if TTL has expired
+      if (retryState.retryConfig.ttlDateTime && RetryService.isRetryTtlExpired(retryState.retryConfig.ttlDateTime)) {
+        // Mark as expired
+        retryState.isExpired = true;
+        return;
+      }
+
+      // Check if it's time for next retry
+      if (retryState.nextAttemptAt) {
+        const nextAttempt = new Date(retryState.nextAttemptAt);
+        if (now >= nextAttempt) {
+          campaignsForRetry.push({ campaignId, retryState });
+        }
+      }
+    });
+
+    return campaignsForRetry;
+  }
+
+  /**
+   * Update campaign retry state after an attempt
+   */
+  static updateRetryAttempt(campaignId: string, attempt: any): void {
+    const retryState = campaignRetryStates.get(campaignId);
+    if (retryState) {
+      const updatedState = RetryService.updateRetryState(retryState, attempt);
+      campaignRetryStates.set(campaignId, updatedState);
+    }
+  }
+
+  /**
+   * Get retry statistics for all campaigns
+   */
+  static getRetryStatistics(): { [campaignId: string]: any } {
+    const stats: { [campaignId: string]: any } = {};
+    
+    campaignRetryStates.forEach((retryState, campaignId) => {
+      stats[campaignId] = RetryService.getRetryStats(retryState);
+    });
+
+    return stats;
   }
 }
