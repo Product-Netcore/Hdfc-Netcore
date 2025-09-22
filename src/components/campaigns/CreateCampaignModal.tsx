@@ -2037,20 +2037,6 @@ export function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps)
                       </div>
                     </div>
                   </div>
-
-                  {/* Target Statuses */}
-                  <div>
-                    <Label className="text-sm font-medium mb-2 block">Target statuses (auto-included)</Label>
-                    <div className="text-sm text-muted-foreground space-y-1">
-                      <div>• Failed messages</div>
-                      <div>• Undelivered messages</div>
-                      <div>• Rate-limited messages</div>
-                      <div>• Expired messages</div>
-                      <div className="mt-2 text-xs">
-                        <strong>Auto-excluded:</strong> Opted-out, Invalid numbers, Blocked contacts
-                      </div>
-                    </div>
-                  </div>
                 </div>
               )}
             </div>
