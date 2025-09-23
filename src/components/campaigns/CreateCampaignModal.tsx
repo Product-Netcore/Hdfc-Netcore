@@ -773,8 +773,11 @@ const SummaryPanel = ({ formData, currentStep }: { formData: CampaignFormData; c
             )}
             {formData.retryEnabled && (
               <div>
-                <span className="font-medium text-foreground">TTL:</span>
-                <div>Until {formData.retryTtlDate ? format(formData.retryTtlDate, 'MMM dd, yyyy') : 'N/A'} at {formData.retryTtlTime}</div>
+                <span className="font-medium text-foreground">Time to live:</span>
+                <div>{formData.retryTtlDate && formData.retryTtlTime ? 
+                  `${format(formData.retryTtlDate, 'MMM dd, yyyy')} ${formData.retryTtlTime}` : 
+                  'Not set'
+                }</div>
               </div>
             )}
             </div>
@@ -1902,17 +1905,11 @@ export function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps)
               </div>
             </div>
 
-            {/* TTL Panel */}
+            {/* Time to live Panel */}
             <div className="mt-8">
               <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-2">
-                  <h4 className="font-medium">TTL</h4>
-                  <Info className="w-4 h-4 text-muted-foreground" />
-                  {formData.scheduleType === 'optimize' && formData.retryEnabled && (
-                    <Badge variant="secondary" className="ml-2 bg-blue-100 text-blue-800">
-                      Managed by Co-Marketer
-                    </Badge>
-                  )}
+                <div>
+                  <h4 className="font-medium text-base">Time to live</h4>
                 </div>
                 <Switch 
                   checked={formData.retryEnabled}
@@ -1933,64 +1930,94 @@ export function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps)
                 </Alert>
               )}
 
-              {/* TTL Configuration - Unified for all modes */}
+              {/* Time to live Configuration */}
               {formData.retryEnabled && isRetryAllowed() && (
                 <div className="space-y-4">
-                  <div className="p-4 bg-muted/30 rounded-lg">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <div className="w-4 h-4 rounded-full border-2 border-primary bg-primary flex items-center justify-center">
+                      <div className="w-2 h-2 bg-white rounded-full"></div>
+                    </div>
+                    <span className="text-sm font-medium">Specific date and time</span>
+                  </div>
+                  
+                  <div className="ml-6">
                     <p className="text-sm text-muted-foreground mb-4">
-                      <strong>Retry Until (TTL):</strong> Set the deadline for retry attempts
+                      Set the period during which the campaign is active. Any messages not delivered within this period is revoked. Min 24 hours and Max 28 days is allowed. By default, the TTL is set to 7 days.
                     </p>
                     
-                    {/* TTL Date/Time Picker */}
                     <div className="space-y-4">
                       <div>
-                        <Label className="text-sm font-medium mb-2 block">Retry Until Date</Label>
+                        <Label className="text-sm font-medium mb-2 block">Specific date and time <span className="text-red-500">*</span></Label>
                         <Popover>
                           <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className={`w-full justify-start text-left font-normal ${
-                                !formData.retryTtlDate && "text-muted-foreground"
-                              }`}
-                            >
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {formData.retryTtlDate ? (
-                                format(formData.retryTtlDate, "PPP")
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
-                            </Button>
+                            <div className="flex items-center space-x-2">
+                              <Input
+                                type="text"
+                                value={formData.retryTtlDate && formData.retryTtlTime ? 
+                                  `${format(formData.retryTtlDate, 'MMM dd, yyyy')} ${formData.retryTtlTime}` : 
+                                  ''
+                                }
+                                placeholder="Oct 23, 2025 2:02 PM"
+                                className="flex-1 cursor-pointer"
+                                readOnly
+                              />
+                              <Button variant="outline" size="icon" type="button">
+                                <CalendarIcon className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0">
-                            <Calendar
-                              mode="single"
-                              selected={formData.retryTtlDate || undefined}
-                              onSelect={(date) => {
-                                // Auto-set default TTL to scheduled date + 7 days if no date selected
-                                if (!formData.retryTtlDate && date) {
+                            <div className="p-4 space-y-4">
+                              <Calendar
+                                mode="single"
+                                selected={formData.retryTtlDate || undefined}
+                                onSelect={(date) => {
+                                  if (date) {
+                                    updateFormData({ retryTtlDate: date });
+                                  }
+                                }}
+                                disabled={(date) => {
                                   const scheduledDate = formData.scheduledDate || new Date();
-                                  const defaultTtl = new Date(scheduledDate);
-                                  defaultTtl.setDate(defaultTtl.getDate() + 7);
-                                  updateFormData({ retryTtlDate: date || defaultTtl });
-                                } else {
-                                  updateFormData({ retryTtlDate: date });
-                                }
-                              }}
-                              disabled={(date) => {
-                                const scheduledDate = formData.scheduledDate || new Date();
-                                const minDate = new Date(scheduledDate);
-                                minDate.setDate(minDate.getDate() + 1); // At least 24 hours after scheduled date
-                                const maxDate = new Date(scheduledDate);
-                                maxDate.setDate(maxDate.getDate() + 28); // Maximum 28 days from scheduled date
-                                return date < minDate || date > maxDate;
-                              }}
-                              initialFocus
-                            />
+                                  const minDate = new Date(scheduledDate);
+                                  minDate.setDate(minDate.getDate() + 1); // At least 24 hours after scheduled date
+                                  const maxDate = new Date(scheduledDate);
+                                  maxDate.setDate(maxDate.getDate() + 28); // Maximum 28 days from scheduled date
+                                  return date < minDate || date > maxDate;
+                                }}
+                                initialFocus
+                              />
+                              <div className="border-t pt-4">
+                                <Label className="text-sm font-medium mb-2 block">Time</Label>
+                                <Select
+                                  value={formData.retryTtlTime}
+                                  onValueChange={(value) => updateFormData({ retryTtlTime: value })}
+                                >
+                                  <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Select time" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {Array.from({ length: 24 }, (_, i) => {
+                                      const hour = i;
+                                      const time12 = hour === 0 ? '12:00 AM' : 
+                                                   hour < 12 ? `${hour}:00 AM` : 
+                                                   hour === 12 ? '12:00 PM' : 
+                                                   `${hour - 12}:00 PM`;
+                                      const time12_30 = hour === 0 ? '12:30 AM' : 
+                                                       hour < 12 ? `${hour}:30 AM` : 
+                                                       hour === 12 ? '12:30 PM' : 
+                                                       `${hour - 12}:30 PM`;
+                                      return [
+                                        <SelectItem key={`${hour}:00`} value={time12}>{time12}</SelectItem>,
+                                        <SelectItem key={`${hour}:30`} value={time12_30}>{time12_30}</SelectItem>
+                                      ];
+                                    }).flat()}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
                           </PopoverContent>
                         </Popover>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Must be at least 24 hours after scheduled date. Recommended 7 days, can be set up to 28 days.
-                        </p>
+                        
                         {/* TTL Validation Error Display */}
                         {(() => {
                           const validation = validateScheduleStep();
@@ -2000,56 +2027,13 @@ export function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps)
                           return ttlErrors.length > 0 && (
                             <div className="mt-2">
                               {ttlErrors.map((error, index) => (
-                                <p key={index} className="text-xs text-red-600 bg-red-50 p-2 rounded">
+                                <p key={index} className="text-xs text-red-600">
                                   {error}
                                 </p>
                               ))}
                             </div>
                           );
                         })()}
-                      </div>
-                      
-                      <div>
-                        <Label className="text-sm font-medium mb-2 block">Retry Until Time</Label>
-                        <Select
-                          value={formData.retryTtlTime}
-                          onValueChange={(value) => updateFormData({ retryTtlTime: value })}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select time" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {Array.from({ length: 24 }, (_, i) => {
-                              const hour = i;
-                              const time12 = hour === 0 ? '12:00 AM' : 
-                                           hour < 12 ? `${hour}:00 AM` : 
-                                           hour === 12 ? '12:00 PM' : 
-                                           `${hour - 12}:00 PM`;
-                              const time12_30 = hour === 0 ? '12:30 AM' : 
-                                               hour < 12 ? `${hour}:30 AM` : 
-                                               hour === 12 ? '12:30 PM' : 
-                                               `${hour - 12}:30 PM`;
-                              return [
-                                <SelectItem key={`${hour}:00`} value={time12}>{time12}</SelectItem>,
-                                <SelectItem key={`${hour}:30`} value={time12_30}>{time12_30}</SelectItem>
-                              ];
-                            }).flat()}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    
-                    {/* Helper Text */}
-                    <div className="mt-4 space-y-2">
-                      <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                        <p className="text-xs text-blue-700">
-                          <strong>Messages will be retried until this deadline.</strong> The system will automatically handle retry intervals and stop all retry attempts once the TTL is reached.
-                        </p>
-                      </div>
-                      <div className="p-2 bg-amber-50 border border-amber-200 rounded-lg">
-                        <p className="text-xs text-amber-700">
-                          <strong>💡 Recommendation:</strong> 7 days provides optimal balance between delivery success and resource efficiency.
-                        </p>
                       </div>
                     </div>
                   </div>
