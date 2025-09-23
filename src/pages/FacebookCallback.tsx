@@ -77,7 +77,7 @@ const FacebookCallback: React.FC = () => {
       window.close();
     } else {
       // If not in popup, redirect to account settings
-      window.location.href = '/account-settings';
+      window.location.href = '/settings/account';
     }
   };
 

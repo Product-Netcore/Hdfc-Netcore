@@ -39,7 +39,7 @@ const AddNumberCard: React.FC<{
     // Facebook WABA OAuth parameters
     const facebookParams = new URLSearchParams({
       client_id: 'YOUR_FACEBOOK_APP_ID', // Placeholder
-      redirect_uri: 'http://localhost:3000/fb-callback',
+      redirect_uri: `${window.location.origin}/fb-callback`,
       scope: 'whatsapp_business_management,whatsapp_business_messaging,business_management',
       response_type: 'code',
       state: 'waba_connection'
@@ -242,8 +242,8 @@ const AccountSettingsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Settings Cards Grid */}
-        <div className="grid gap-6 md:grid-cols-2">
+        {/* Settings Cards - Vertical Stack */}
+        <div className="flex flex-col space-y-6">
           {/* Link Tracking Card */}
           <Card>
             <CardHeader>

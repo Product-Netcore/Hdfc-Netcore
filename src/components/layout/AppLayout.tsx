@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Megaphone, Users, FileText, BarChart3, MessageSquare, Route, Monitor, Smartphone, Globe, ChevronDown, Plus } from 'lucide-react';
+import { LayoutDashboard, Megaphone, Users, FileText, BarChart3, MessageSquare, Route, Monitor, Smartphone, Globe, ChevronDown, Plus, Settings } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import {
@@ -42,6 +42,15 @@ const navigation = [{
   name: 'Analytics',
   href: '/analytics',
   icon: BarChart3
+}, {
+  name: 'Settings',
+  href: '/settings',
+  icon: Settings,
+  children: [{
+    name: 'Account Settings',
+    href: '/settings/account',
+    icon: Settings
+  }]
 }];
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -72,13 +81,23 @@ export function AppLayout({
           {navigation.map(item => <div key={item.name}>
               <NavLink to={item.href} className={({
             isActive
-          }) => cn("flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors", isActive || item.name === 'Engage' ? "bg-primary-foreground/10 text-primary-foreground" : "text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/5")}>
+          }) => cn("flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors", isActive || item.name === 'Engage' || item.name === 'Settings' ? "bg-primary-foreground/10 text-primary-foreground" : "text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/5")}>
                 <item.icon className="w-4 h-4 mr-3" />
                 {item.name}
               </NavLink>
               
               {/* Submenu for Engage */}
               {item.name === 'Engage' && item.children && <div className="ml-7 mt-1 space-y-1">
+                  {item.children.map(child => <NavLink key={child.name} to={child.href} className={({
+              isActive
+            }) => cn("flex items-center px-3 py-1.5 text-sm rounded-md transition-colors", isActive ? "bg-primary-foreground/15 text-primary-foreground font-medium" : "text-primary-foreground/60 hover:text-primary-foreground hover:bg-primary-foreground/5")}>
+                      <child.icon className="w-3 h-3 mr-2" />
+                      {child.name}
+                    </NavLink>)}
+                </div>}
+
+              {/* Submenu for Settings */}
+              {item.name === 'Settings' && item.children && <div className="ml-7 mt-1 space-y-1">
                   {item.children.map(child => <NavLink key={child.name} to={child.href} className={({
               isActive
             }) => cn("flex items-center px-3 py-1.5 text-sm rounded-md transition-colors", isActive ? "bg-primary-foreground/15 text-primary-foreground font-medium" : "text-primary-foreground/60 hover:text-primary-foreground hover:bg-primary-foreground/5")}>

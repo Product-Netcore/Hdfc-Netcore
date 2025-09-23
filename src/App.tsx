@@ -27,6 +27,7 @@ const App = () => (
           <Route path="/engage/campaigns" element={<Campaigns />} />
           <Route path="/supabase-test" element={<SupabaseTest />} />
           <Route path="/account-settings" element={<AccountSettings />} />
+          <Route path="/settings/account" element={<AccountSettings />} />
           <Route path="/fb-callback" element={<FacebookCallback />} />
           
           {/* Premium-gated / Unfinished Routes */}
