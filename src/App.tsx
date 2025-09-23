@@ -8,6 +8,8 @@ import Campaigns from "./pages/Campaigns";
 import SupabaseTest from "./pages/SupabaseTest";
 import PremiumGate from "./pages/PremiumGate";
 import NotFound from "./pages/NotFound";
+import AccountSettings from "./pages/AccountSettings";
+import FacebookCallback from "./pages/FacebookCallback";
 
 const queryClient = new QueryClient();
 
@@ -24,6 +26,8 @@ const App = () => (
           {/* Active/Implemented Routes */}
           <Route path="/engage/campaigns" element={<Campaigns />} />
           <Route path="/supabase-test" element={<SupabaseTest />} />
+          <Route path="/account-settings" element={<AccountSettings />} />
+          <Route path="/fb-callback" element={<FacebookCallback />} />
           
           {/* Premium-gated / Unfinished Routes */}
           <Route path="/dashboards" element={<PremiumGate feature="Dashboards" />} />
