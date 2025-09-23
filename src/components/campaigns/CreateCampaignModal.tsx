@@ -158,7 +158,7 @@ interface CampaignFormData {
   sendLimit: boolean;
   maxRecipients: number;
   samplingMethod: SamplingMethod;
-  // Retry Logic fields
+  // TTL fields
   retryEnabled: boolean;
   retryTtlDate: Date | null;
   retryTtlTime: string;
@@ -773,7 +773,7 @@ const SummaryPanel = ({ formData, currentStep }: { formData: CampaignFormData; c
             )}
             {formData.retryEnabled && (
               <div>
-                <span className="font-medium text-foreground">Retry logic:</span>
+                <span className="font-medium text-foreground">TTL:</span>
                 <div>Until {formData.retryTtlDate ? format(formData.retryTtlDate, 'MMM dd, yyyy') : 'N/A'} at {formData.retryTtlTime}</div>
               </div>
             )}
@@ -904,7 +904,7 @@ export function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps)
       sendLimit: false,
       maxRecipients: 1000,
       samplingMethod: 'RANDOM_SAMPLE',
-      // Retry Logic fields
+      // TTL fields
       retryEnabled: false,
       retryTtlDate: null,
       retryTtlTime: '11:59 PM',
@@ -1401,7 +1401,7 @@ export function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps)
       sendLimit: false,
       maxRecipients: 1000,
       samplingMethod: 'RANDOM_SAMPLE',
-      // Retry Logic fields
+      // TTL fields
       retryEnabled: false,
       retryTtlDate: null,
       retryTtlTime: '11:59 PM',
@@ -1902,11 +1902,11 @@ export function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps)
               </div>
             </div>
 
-            {/* Retry Logic Panel */}
+            {/* TTL Panel */}
             <div className="mt-8">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-2">
-                  <h4 className="font-medium">Retry logic</h4>
+                  <h4 className="font-medium">TTL</h4>
                   <Info className="w-4 h-4 text-muted-foreground" />
                   {formData.scheduleType === 'optimize' && formData.retryEnabled && (
                     <Badge variant="secondary" className="ml-2 bg-blue-100 text-blue-800">
@@ -1933,7 +1933,7 @@ export function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps)
                 </Alert>
               )}
 
-              {/* Retry Configuration - Unified for all modes */}
+              {/* TTL Configuration - Unified for all modes */}
               {formData.retryEnabled && isRetryAllowed() && (
                 <div className="space-y-4">
                   <div className="p-4 bg-muted/30 rounded-lg">
