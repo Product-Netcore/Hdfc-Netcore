@@ -942,7 +942,7 @@ export function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps)
       if (updates.retryEnabled === true && !newData.retryTtlDate) {
         const scheduledDate = newData.scheduledDate || new Date();
         const defaultTtl = new Date(scheduledDate);
-        defaultTtl.setDate(defaultTtl.getDate() + 7); // Default to 7 days (maximum allowed)
+        defaultTtl.setDate(defaultTtl.getDate() + 7); // Default to 7 days (recommended value)
         newData.retryTtlDate = defaultTtl;
         newData.retryTtlTime = '11:59 PM';
       }
@@ -1020,14 +1020,14 @@ export function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps)
       const minDate = new Date(scheduledDate);
       minDate.setDate(minDate.getDate() + 1); // At least 24 hours after scheduled date
       const maxDate = new Date(scheduledDate);
-      maxDate.setDate(maxDate.getDate() + 7);
+      maxDate.setDate(maxDate.getDate() + 28); // Maximum 28 days from scheduled date
       
       if (formData.retryTtlDate < minDate) {
-        errors.push('Retry TTL must be at least 24 hours after the scheduled date');
+        errors.push('TTL must be at least 24 hours after the scheduled date');
       }
       
       if (formData.retryTtlDate > maxDate) {
-        errors.push('Retry TTL cannot be more than 7 days after the scheduled date');
+        errors.push('TTL cannot be more than 28 days after the scheduled date');
       }
     }
     
@@ -1981,7 +1981,7 @@ export function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps)
                                 const minDate = new Date(scheduledDate);
                                 minDate.setDate(minDate.getDate() + 1); // At least 24 hours after scheduled date
                                 const maxDate = new Date(scheduledDate);
-                                maxDate.setDate(maxDate.getDate() + 7);
+                                maxDate.setDate(maxDate.getDate() + 28); // Maximum 28 days from scheduled date
                                 return date < minDate || date > maxDate;
                               }}
                               initialFocus
@@ -1989,7 +1989,7 @@ export function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps)
                           </PopoverContent>
                         </Popover>
                         <p className="text-xs text-muted-foreground mt-1">
-                          Must be at least 24 hours after scheduled date, maximum 7 days
+                          Must be at least 24 hours after scheduled date. Recommended 7 days, can be set up to 28 days.
                         </p>
                         {/* TTL Validation Error Display */}
                         {(() => {
@@ -2040,10 +2040,17 @@ export function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps)
                     </div>
                     
                     {/* Helper Text */}
-                    <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                      <p className="text-xs text-blue-700">
-                        <strong>Messages will be retried until this deadline.</strong> The system will automatically handle retry intervals and stop all retry attempts once the TTL is reached.
-                      </p>
+                    <div className="mt-4 space-y-2">
+                      <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <p className="text-xs text-blue-700">
+                          <strong>Messages will be retried until this deadline.</strong> The system will automatically handle retry intervals and stop all retry attempts once the TTL is reached.
+                        </p>
+                      </div>
+                      <div className="p-2 bg-amber-50 border border-amber-200 rounded-lg">
+                        <p className="text-xs text-amber-700">
+                          <strong>💡 Recommendation:</strong> 7 days provides optimal balance between delivery success and resource efficiency.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>

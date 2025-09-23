@@ -61,10 +61,10 @@ export class RetryService {
     }
 
     const maxTtl = new Date(scheduled);
-    maxTtl.setDate(maxTtl.getDate() + 7); // 7 days maximum
+    maxTtl.setDate(maxTtl.getDate() + 28); // 28 days maximum
     
     if (ttl > maxTtl) {
-      errors.push('TTL cannot be more than 7 days after scheduled time');
+      errors.push('TTL cannot be more than 28 days after scheduled time');
     }
 
     if (ttl <= now) {
