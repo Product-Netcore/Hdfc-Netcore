@@ -230,7 +230,8 @@ const AccountSettingsPage: React.FC = () => {
 
   return (
     <AppLayout>
-      <div className="flex-1 space-y-6 p-6">
+      <div className="flex-1 overflow-y-auto">
+        <div className="space-y-6 p-6">
         {/* Page Header */}
         <div className="flex items-center space-x-2">
           <Settings className="w-6 h-6 text-primary" />
@@ -406,6 +407,7 @@ const AccountSettingsPage: React.FC = () => {
             </div>
           </CardContent>
         </Card>
+        </div>
       </div>
     </AppLayout>
   );
