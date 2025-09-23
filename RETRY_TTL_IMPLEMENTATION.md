@@ -1,10 +1,21 @@
-# Campaign Retry TTL Implementation
+# Campaign Unified Retry TTL Implementation
 
-This document describes the implementation of the new **Retry TTL (Time To Live)** system that replaces the previous **Number of Retries** approach in the Campaign module's Schedule section.
+This document describes the implementation of the **Unified Retry TTL (Time To Live)** system that simplifies retry configuration by exposing a single TTL setting to users while internally managing both retry engine and Meta API TTL requirements.
 
 ## Overview
 
-The new system uses a **time-bounded retry approach** where campaigns will retry failed attempts until a specified TTL (deadline) is reached, rather than limiting retries by count.
+The unified TTL system addresses two key concerns:
+
+1. **Retry Engine TTL**: Internal retry attempts for failed messages
+2. **Meta API TTL**: Meta's own delivery deadline enforcement
+
+**Key Innovation**: Customers see only **one "Retry Until (TTL)" setting** in the UI, but the system internally maps this to both retry engine and Meta API requirements.
+
+### Benefits
+- **Simplified UX**: Single TTL configuration instead of multiple retry settings
+- **Unified Control**: One deadline governs all retry attempts
+- **Platform Abstraction**: Users don't need to understand internal retry vs Meta API distinctions
+- **Consistent Behavior**: Both systems respect the same cutoff time
 
 ## Key Changes
 

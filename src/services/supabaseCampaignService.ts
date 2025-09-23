@@ -1,6 +1,7 @@
 import { supabase, Database } from '@/lib/supabase';
 import { Campaign, CampaignListOptions, RetryTtlConfig } from '@/types/campaign';
 import { CampaignService } from './campaignService';
+import { RetryService } from './retryService';
 
 type CampaignRow = Database['public']['Tables']['campaigns']['Row'];
 type CampaignInsert = Database['public']['Tables']['campaigns']['Insert'];
@@ -234,15 +235,15 @@ export class SupabaseCampaignService {
   }
 
   /**
-   * Update campaign retry TTL configuration
+   * Update campaign unified retry TTL configuration
    */
-  static async updateRetryTtl(
+  static async updateUnifiedRetryTtl(
     campaignId: string, 
     retryTtl: string, 
     scheduledAt?: string
   ): Promise<void> {
     const updateData: any = {
-      retry_ttl: retryTtl,
+      retry_ttl: retryTtl, // Unified TTL for both retry engine and Meta API
       updated_at: new Date().toISOString()
     };
 
@@ -257,17 +258,23 @@ export class SupabaseCampaignService {
 
     if (error) throw error;
 
-    // Also update the in-memory retry service
-    const retryConfig: RetryTtlConfig = {
-      enabled: true,
-      ttlDateTime: retryTtl,
-      scheduledDateTime: scheduledAt,
-      stopOnConversion: true,
-      stopOnManualPause: true,
-      stopOnTemplateChange: true
-    };
+    // Create unified TTL configuration for both retry engine and Meta API
+    const unifiedConfig = RetryService.createUnifiedTtlConfig(
+      campaignId,
+      scheduledAt || new Date().toISOString(),
+      retryTtl
+    );
 
-    CampaignService.setRetryConfig(campaignId, retryConfig);
+    if (unifiedConfig.isValid) {
+      // Update the in-memory retry service with unified config
+      CampaignService.setRetryConfig(campaignId, unifiedConfig.retryEngineConfig);
+      
+      // Log Meta API TTL for backend integration
+      console.log(`Campaign ${campaignId} Meta API TTL set to: ${unifiedConfig.metaApiTtl}`);
+    } else {
+      console.error(`Invalid unified TTL for campaign ${campaignId}:`, unifiedConfig.errors);
+      throw new Error(`Invalid TTL configuration: ${unifiedConfig.errors.join(', ')}`);
+    }
   }
 
   /**

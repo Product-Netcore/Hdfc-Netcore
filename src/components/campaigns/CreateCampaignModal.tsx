@@ -942,7 +942,7 @@ export function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps)
       if (updates.retryEnabled === true && !newData.retryTtlDate) {
         const scheduledDate = newData.scheduledDate || new Date();
         const defaultTtl = new Date(scheduledDate);
-        defaultTtl.setDate(defaultTtl.getDate() + 7);
+        defaultTtl.setDate(defaultTtl.getDate() + 7); // Default to 7 days (maximum allowed)
         newData.retryTtlDate = defaultTtl;
         newData.retryTtlTime = '11:59 PM';
       }
@@ -1018,15 +1018,16 @@ export function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps)
     if (formData.retryEnabled && formData.retryTtlDate) {
       const scheduledDate = formData.scheduledDate || new Date();
       const minDate = new Date(scheduledDate);
+      minDate.setDate(minDate.getDate() + 1); // At least 24 hours after scheduled date
       const maxDate = new Date(scheduledDate);
       maxDate.setDate(maxDate.getDate() + 7);
       
       if (formData.retryTtlDate < minDate) {
-        errors.push('Retry TTL date cannot be before the scheduled date');
+        errors.push('Retry TTL must be at least 24 hours after the scheduled date');
       }
       
       if (formData.retryTtlDate > maxDate) {
-        errors.push('Retry TTL date cannot be more than 7 days after the scheduled date');
+        errors.push('Retry TTL cannot be more than 7 days after the scheduled date');
       }
     }
     
@@ -1978,6 +1979,7 @@ export function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps)
                               disabled={(date) => {
                                 const scheduledDate = formData.scheduledDate || new Date();
                                 const minDate = new Date(scheduledDate);
+                                minDate.setDate(minDate.getDate() + 1); // At least 24 hours after scheduled date
                                 const maxDate = new Date(scheduledDate);
                                 maxDate.setDate(maxDate.getDate() + 7);
                                 return date < minDate || date > maxDate;
@@ -1987,7 +1989,7 @@ export function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps)
                           </PopoverContent>
                         </Popover>
                         <p className="text-xs text-muted-foreground mt-1">
-                          Must be between scheduled date and scheduled date + 7 days
+                          Must be at least 24 hours after scheduled date, maximum 7 days
                         </p>
                         {/* TTL Validation Error Display */}
                         {(() => {
@@ -2035,6 +2037,13 @@ export function CreateCampaignModal({ open, onClose }: CreateCampaignModalProps)
                           </SelectContent>
                         </Select>
                       </div>
+                    </div>
+                    
+                    {/* Helper Text */}
+                    <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-xs text-blue-700">
+                        <strong>Messages will be retried until this deadline.</strong> The system will automatically handle retry intervals and stop all retry attempts once the TTL is reached.
+                      </p>
                     </div>
                   </div>
                 </div>

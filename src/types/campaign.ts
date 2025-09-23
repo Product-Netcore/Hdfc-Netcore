@@ -16,9 +16,9 @@ export interface Campaign {
   channel: CampaignChannel;
   createdAt?: string;
   updatedAt?: string;
-  // Retry TTL configuration
-  retryTtl?: string; // ISO 8601 datetime string
+  // Unified Retry TTL configuration
   scheduledAt?: string; // ISO 8601 datetime string for scheduled campaigns
+  retryTtl?: string | null; // Unified TTL (ISO 8601) - used for both retry engine and Meta API
 }
 
 export interface StatusTab {

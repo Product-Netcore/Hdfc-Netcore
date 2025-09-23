@@ -28,6 +28,56 @@ export class RetryService {
   }
 
   /**
+   * Validate unified TTL constraints
+   */
+  static validateUnifiedTtl(ttlDateTime: string, scheduledDateTime: string): {
+    isValid: boolean;
+    errors: string[];
+  } {
+    const errors: string[] = [];
+    const ttl = new Date(ttlDateTime);
+    const scheduled = new Date(scheduledDateTime);
+    const now = new Date();
+
+    // Check if dates are valid
+    if (isNaN(ttl.getTime())) {
+      errors.push('Invalid TTL datetime');
+    }
+
+    if (isNaN(scheduled.getTime())) {
+      errors.push('Invalid scheduled datetime');
+    }
+
+    if (errors.length > 0) {
+      return { isValid: false, errors };
+    }
+
+    // Check TTL constraints - must be at least 24 hours after scheduled time
+    const minTtl = new Date(scheduled);
+    minTtl.setDate(minTtl.getDate() + 1); // 24 hours minimum
+    
+    if (ttl < minTtl) {
+      errors.push('TTL must be at least 24 hours after scheduled time');
+    }
+
+    const maxTtl = new Date(scheduled);
+    maxTtl.setDate(maxTtl.getDate() + 7); // 7 days maximum
+    
+    if (ttl > maxTtl) {
+      errors.push('TTL cannot be more than 7 days after scheduled time');
+    }
+
+    if (ttl <= now) {
+      errors.push('TTL must be in the future');
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  }
+
+  /**
    * Calculate next retry attempt based on error code and retry policy
    */
   static calculateNextRetryAttempt(
@@ -220,5 +270,55 @@ export class RetryService {
     }
 
     return stats;
+  }
+
+  /**
+   * Create unified TTL configuration for both retry engine and Meta API
+   */
+  static createUnifiedTtlConfig(
+    campaignId: string,
+    scheduledAt: string,
+    retryTtl: string
+  ): {
+    retryEngineConfig: RetryTtlConfig;
+    metaApiTtl: string;
+    isValid: boolean;
+    errors: string[];
+  } {
+    // Validate the unified TTL
+    const validation = this.validateUnifiedTtl(retryTtl, scheduledAt);
+    
+    if (!validation.isValid) {
+      return {
+        retryEngineConfig: {
+          enabled: false,
+          ttlDateTime: undefined,
+          scheduledDateTime: scheduledAt,
+          stopOnConversion: true,
+          stopOnManualPause: true,
+          stopOnTemplateChange: true
+        },
+        metaApiTtl: retryTtl,
+        isValid: false,
+        errors: validation.errors
+      };
+    }
+
+    // Create retry engine configuration
+    const retryEngineConfig: RetryTtlConfig = {
+      enabled: true,
+      ttlDateTime: retryTtl, // Use unified TTL for retry engine
+      scheduledDateTime: scheduledAt,
+      stopOnConversion: true,
+      stopOnManualPause: true,
+      stopOnTemplateChange: true
+    };
+
+    return {
+      retryEngineConfig,
+      metaApiTtl: retryTtl, // Same TTL used for Meta API
+      isValid: true,
+      errors: []
+    };
   }
 }

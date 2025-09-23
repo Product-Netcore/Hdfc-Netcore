@@ -16,8 +16,8 @@ CREATE TABLE IF NOT EXISTS public.campaigns (
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-    -- Retry TTL fields
-    retry_ttl TIMESTAMPTZ, -- When retry attempts should stop
+    -- Unified Retry TTL field (used for both retry engine and Meta API)
+    retry_ttl TIMESTAMPTZ, -- Unified TTL - when retry attempts should stop
     scheduled_at TIMESTAMPTZ -- When the campaign was originally scheduled
 );
 
@@ -49,6 +49,30 @@ CREATE POLICY "Users can update own campaigns" ON public.campaigns
 -- Users can delete their own campaigns
 CREATE POLICY "Users can delete own campaigns" ON public.campaigns
     FOR DELETE USING (auth.uid() = user_id);
+
+-- Migration: Add retry_ttl column if it doesn't exist (for existing databases)
+DO $$ 
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'campaigns' 
+        AND column_name = 'retry_ttl'
+        AND table_schema = 'public'
+    ) THEN
+        ALTER TABLE public.campaigns ADD COLUMN retry_ttl TIMESTAMPTZ;
+        CREATE INDEX IF NOT EXISTS idx_campaigns_retry_ttl ON public.campaigns(retry_ttl) WHERE retry_ttl IS NOT NULL;
+    END IF;
+    
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'campaigns' 
+        AND column_name = 'scheduled_at'
+        AND table_schema = 'public'
+    ) THEN
+        ALTER TABLE public.campaigns ADD COLUMN scheduled_at TIMESTAMPTZ;
+        CREATE INDEX IF NOT EXISTS idx_campaigns_scheduled_at ON public.campaigns(scheduled_at) WHERE scheduled_at IS NOT NULL;
+    END IF;
+END $$;
 
 -- Create a function to automatically update the updated_at timestamp
 CREATE OR REPLACE FUNCTION public.handle_updated_at()
